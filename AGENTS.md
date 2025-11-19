@@ -4,11 +4,7 @@
 Core automation sits in `scripts/` (data preview and visualization helpers) and the vendorized `scGPT/` modules/tests. Keep raw AnnData or CSV inputs inside `data/raw/` (gitignored) and write derived features to `data/processed/`. Docs live in `docs/`, and notebooks stay in `notebook/` with outputs cleared before commit.
 
 ## Build, Test, and Development Commands
-- `conda create -n vcc python=3.11 -y && conda activate vcc`: baseline environment.
-- `pip install -r requirements.txt`: installs Scanpy/AnnData, visualization libs, and the scGPT stack.
-- `python scripts/preview_data.py`: confirms local H5AD/CSV assets load; adjust `data_dir` as needed.
-- `python scripts/visualize_h5ad.py`: recreates the exploratory plots referenced in `docs/h5ad_visualize.md`.
-- `pytest scGPT/tests`: runs tokenizer, sampler, and scFormer smoke tests once optional extras are installed.
+- `source ~/.bashrc && conda activate vcc`: activate conda environment to run python.
 - `ruff format . && ruff check . --fix`: applies PEP 8 formatting and autofixes lint issues using the repo `pyproject.toml`.
 
 ## Coding Style & Naming Conventions

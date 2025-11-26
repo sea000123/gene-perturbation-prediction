@@ -40,3 +40,236 @@
 2025-11-20 12:40:37,085 - ZeroShotPerturbation - INFO - Results saved to results/baseline/perturbation_metrics.csv
 2025-11-20 12:40:37,085 - ZeroShotPerturbation - INFO - Overall Mean MSE: 1.4931
 2025-11-20 12:40:37,085 - ZeroShotPerturbation - INFO - Overall Mean Pearson: 0.9898
+2025-11-26 22:36:41,281 - ZeroShotPerturbation - INFO - Starting Zero-Shot Perturbation Pipeline with baseline model
+2025-11-26 22:36:41,281 - ZeroShotPerturbation - INFO - Results will be saved to: results/baseline
+2025-11-26 22:36:41,281 - ZeroShotPerturbation - INFO - Initializing Baseline Model Wrapper...
+2025-11-26 22:36:41,360 - ZeroShotPerturbation - INFO - Loaded vocab from model/scGPT/vocab.json
+2025-11-26 22:36:41,360 - ZeroShotPerturbation - INFO - Initializing Data Loader...
+2025-11-26 22:36:41,360 - ZeroShotPerturbation - INFO - Loading training data from data/processed/train.h5ad
+2025-11-26 22:36:54,499 - ZeroShotPerturbation - INFO - Loading test data from data/processed/test.h5ad
+2025-11-26 22:36:56,851 - ZeroShotPerturbation - INFO - Found 38176 control cells.
+2025-11-26 22:37:33,366 - ZeroShotPerturbation - INFO - Processing 15 target genes...
+2025-11-26 22:37:33,373 - ZeroShotPerturbation - INFO - Predicting for target: TCF3
+2025-11-26 22:37:33,889 - ZeroShotPerturbation - WARNING - DE metrics failed for TCF3: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:33,903 - ZeroShotPerturbation - INFO - Target TCF3 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:33,903 - ZeroShotPerturbation - INFO - Predicting for target: TADA1
+2025-11-26 22:37:34,929 - ZeroShotPerturbation - WARNING - DE metrics failed for TADA1: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:34,969 - ZeroShotPerturbation - INFO - Target TADA1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:34,969 - ZeroShotPerturbation - INFO - Predicting for target: FOXH1
+2025-11-26 22:37:35,546 - ZeroShotPerturbation - WARNING - DE metrics failed for FOXH1: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:35,564 - ZeroShotPerturbation - INFO - Target FOXH1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:35,565 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA4
+2025-11-26 22:37:35,859 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA4: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:35,867 - ZeroShotPerturbation - INFO - Target SMARCA4 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:35,867 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA5
+2025-11-26 22:37:36,321 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA5: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:36,338 - ZeroShotPerturbation - INFO - Target SMARCA5 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:36,338 - ZeroShotPerturbation - INFO - Predicting for target: HIRA
+2025-11-26 22:37:37,184 - ZeroShotPerturbation - WARNING - DE metrics failed for HIRA: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:37,220 - ZeroShotPerturbation - INFO - Target HIRA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:37,220 - ZeroShotPerturbation - INFO - Predicting for target: RAB3B
+2025-11-26 22:37:37,427 - ZeroShotPerturbation - WARNING - DE metrics failed for RAB3B: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:37,432 - ZeroShotPerturbation - INFO - Target RAB3B - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:37,432 - ZeroShotPerturbation - INFO - Predicting for target: IGF2R
+2025-11-26 22:37:38,144 - ZeroShotPerturbation - WARNING - DE metrics failed for IGF2R: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:38,178 - ZeroShotPerturbation - INFO - Target IGF2R - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:38,178 - ZeroShotPerturbation - INFO - Predicting for target: SNCA
+2025-11-26 22:37:38,325 - ZeroShotPerturbation - WARNING - DE metrics failed for SNCA: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:38,328 - ZeroShotPerturbation - INFO - Target SNCA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:38,328 - ZeroShotPerturbation - INFO - Predicting for target: TMBIM6
+2025-11-26 22:37:38,449 - ZeroShotPerturbation - WARNING - DE metrics failed for TMBIM6: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:38,454 - ZeroShotPerturbation - INFO - Target TMBIM6 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:38,454 - ZeroShotPerturbation - INFO - Predicting for target: DAXX
+2025-11-26 22:37:38,769 - ZeroShotPerturbation - WARNING - DE metrics failed for DAXX: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:38,782 - ZeroShotPerturbation - INFO - Target DAXX - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:38,782 - ZeroShotPerturbation - INFO - Predicting for target: METTL14
+2025-11-26 22:37:38,912 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL14: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:38,916 - ZeroShotPerturbation - INFO - Target METTL14 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:38,916 - ZeroShotPerturbation - INFO - Predicting for target: METTL17
+2025-11-26 22:37:39,101 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL17: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:39,110 - ZeroShotPerturbation - INFO - Target METTL17 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:39,110 - ZeroShotPerturbation - INFO - Predicting for target: PRR12
+2025-11-26 22:37:39,395 - ZeroShotPerturbation - WARNING - DE metrics failed for PRR12: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:39,407 - ZeroShotPerturbation - INFO - Target PRR12 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:39,407 - ZeroShotPerturbation - INFO - Predicting for target: EPB41L2
+2025-11-26 22:37:39,485 - ZeroShotPerturbation - WARNING - DE metrics failed for EPB41L2: cannot import name 'pde' from 'hpdex' (unknown location)
+2025-11-26 22:37:39,488 - ZeroShotPerturbation - INFO - Target EPB41L2 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:37:39,563 - ZeroShotPerturbation - INFO - Results saved to results/baseline/perturbation_metrics.csv
+2025-11-26 22:37:39,563 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:37:39,563 - ZeroShotPerturbation - INFO - Overall Metrics:
+2025-11-26 22:37:39,566 - ZeroShotPerturbation - INFO -   Mean Pearson (log2FC): nan
+2025-11-26 22:37:39,567 - ZeroShotPerturbation - INFO -   Mean MSE (log2FC):     nan
+2025-11-26 22:37:39,567 - ZeroShotPerturbation - INFO -   Mean DES:              nan
+2025-11-26 22:37:39,567 - ZeroShotPerturbation - INFO -   Mean PDS:              0.5244
+2025-11-26 22:37:39,567 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:40:36,706 - ZeroShotPerturbation - INFO - Starting Zero-Shot Perturbation Pipeline with baseline model
+2025-11-26 22:40:36,707 - ZeroShotPerturbation - INFO - Results will be saved to: results/baseline
+2025-11-26 22:40:36,707 - ZeroShotPerturbation - INFO - Initializing Baseline Model Wrapper...
+2025-11-26 22:40:36,826 - ZeroShotPerturbation - INFO - Loaded vocab from model/scGPT/vocab.json
+2025-11-26 22:40:36,827 - ZeroShotPerturbation - INFO - Initializing Data Loader...
+2025-11-26 22:40:36,827 - ZeroShotPerturbation - INFO - Loading training data from data/processed/train.h5ad
+2025-11-26 22:40:50,204 - ZeroShotPerturbation - INFO - Loading test data from data/processed/test.h5ad
+2025-11-26 22:40:51,747 - ZeroShotPerturbation - INFO - Found 38176 control cells.
+2025-11-26 22:41:07,573 - ZeroShotPerturbation - INFO - Processing 15 target genes...
+2025-11-26 22:41:07,574 - ZeroShotPerturbation - INFO - Predicting for target: TCF3
+2025-11-26 22:41:07,907 - ZeroShotPerturbation - WARNING - DE metrics failed for TCF3: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:07,935 - ZeroShotPerturbation - INFO - Target TCF3 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:07,935 - ZeroShotPerturbation - INFO - Predicting for target: TADA1
+2025-11-26 22:41:08,964 - ZeroShotPerturbation - WARNING - DE metrics failed for TADA1: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:09,045 - ZeroShotPerturbation - INFO - Target TADA1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:09,045 - ZeroShotPerturbation - INFO - Predicting for target: FOXH1
+2025-11-26 22:41:09,622 - ZeroShotPerturbation - WARNING - DE metrics failed for FOXH1: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:09,667 - ZeroShotPerturbation - INFO - Target FOXH1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:09,668 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA4
+2025-11-26 22:41:09,951 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA4: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:09,972 - ZeroShotPerturbation - INFO - Target SMARCA4 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:09,972 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA5
+2025-11-26 22:41:10,413 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA5: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:10,450 - ZeroShotPerturbation - INFO - Target SMARCA5 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:10,450 - ZeroShotPerturbation - INFO - Predicting for target: HIRA
+2025-11-26 22:41:11,258 - ZeroShotPerturbation - WARNING - DE metrics failed for HIRA: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:11,319 - ZeroShotPerturbation - INFO - Target HIRA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:11,319 - ZeroShotPerturbation - INFO - Predicting for target: RAB3B
+2025-11-26 22:41:11,533 - ZeroShotPerturbation - WARNING - DE metrics failed for RAB3B: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:11,545 - ZeroShotPerturbation - INFO - Target RAB3B - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:11,545 - ZeroShotPerturbation - INFO - Predicting for target: IGF2R
+2025-11-26 22:41:12,287 - ZeroShotPerturbation - WARNING - DE metrics failed for IGF2R: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:12,352 - ZeroShotPerturbation - INFO - Target IGF2R - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:12,352 - ZeroShotPerturbation - INFO - Predicting for target: SNCA
+2025-11-26 22:41:12,513 - ZeroShotPerturbation - WARNING - DE metrics failed for SNCA: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:12,523 - ZeroShotPerturbation - INFO - Target SNCA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:12,523 - ZeroShotPerturbation - INFO - Predicting for target: TMBIM6
+2025-11-26 22:41:12,686 - ZeroShotPerturbation - WARNING - DE metrics failed for TMBIM6: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:12,697 - ZeroShotPerturbation - INFO - Target TMBIM6 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:12,698 - ZeroShotPerturbation - INFO - Predicting for target: DAXX
+2025-11-26 22:41:13,018 - ZeroShotPerturbation - WARNING - DE metrics failed for DAXX: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:13,043 - ZeroShotPerturbation - INFO - Target DAXX - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:13,043 - ZeroShotPerturbation - INFO - Predicting for target: METTL14
+2025-11-26 22:41:13,178 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL14: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:13,188 - ZeroShotPerturbation - INFO - Target METTL14 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:13,188 - ZeroShotPerturbation - INFO - Predicting for target: METTL17
+2025-11-26 22:41:13,378 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL17: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:13,395 - ZeroShotPerturbation - INFO - Target METTL17 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:13,395 - ZeroShotPerturbation - INFO - Predicting for target: PRR12
+2025-11-26 22:41:13,707 - ZeroShotPerturbation - WARNING - DE metrics failed for PRR12: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:13,736 - ZeroShotPerturbation - INFO - Target PRR12 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:13,736 - ZeroShotPerturbation - INFO - Predicting for target: EPB41L2
+2025-11-26 22:41:13,820 - ZeroShotPerturbation - WARNING - DE metrics failed for EPB41L2: No module named 'hpdex.backend.bin'
+2025-11-26 22:41:13,824 - ZeroShotPerturbation - INFO - Target EPB41L2 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO - Results saved to results/baseline/perturbation_metrics.csv
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO - Overall Metrics:
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO -   Mean Pearson (log2FC): nan
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO -   Mean MSE (log2FC):     nan
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO -   Mean DES:              nan
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO -   Mean PDS:              0.5156
+2025-11-26 22:41:13,843 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:41:58,634 - ZeroShotPerturbation - INFO - Starting Zero-Shot Perturbation Pipeline with baseline model
+2025-11-26 22:41:58,635 - ZeroShotPerturbation - INFO - Results will be saved to: results/baseline
+2025-11-26 22:41:58,635 - ZeroShotPerturbation - INFO - Initializing Baseline Model Wrapper...
+2025-11-26 22:41:58,740 - ZeroShotPerturbation - INFO - Loaded vocab from model/scGPT/vocab.json
+2025-11-26 22:41:58,740 - ZeroShotPerturbation - INFO - Initializing Data Loader...
+2025-11-26 22:41:58,740 - ZeroShotPerturbation - INFO - Loading training data from data/processed/train.h5ad
+2025-11-26 22:42:30,100 - ZeroShotPerturbation - INFO - Loading test data from data/processed/test.h5ad
+2025-11-26 22:42:52,543 - ZeroShotPerturbation - INFO - Found 38176 control cells.
+2025-11-26 22:43:33,577 - ZeroShotPerturbation - INFO - Processing 15 target genes...
+2025-11-26 22:43:33,578 - ZeroShotPerturbation - INFO - Predicting for target: TCF3
+2025-11-26 22:43:34,085 - ZeroShotPerturbation - WARNING - DE metrics failed for TCF3: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:34,108 - ZeroShotPerturbation - INFO - Target TCF3 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:34,108 - ZeroShotPerturbation - INFO - Predicting for target: TADA1
+2025-11-26 22:43:35,094 - ZeroShotPerturbation - WARNING - DE metrics failed for TADA1: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:35,167 - ZeroShotPerturbation - INFO - Target TADA1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:35,167 - ZeroShotPerturbation - INFO - Predicting for target: FOXH1
+2025-11-26 22:43:35,750 - ZeroShotPerturbation - WARNING - DE metrics failed for FOXH1: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:35,776 - ZeroShotPerturbation - INFO - Target FOXH1 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:35,776 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA4
+2025-11-26 22:43:36,096 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA4: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:36,116 - ZeroShotPerturbation - INFO - Target SMARCA4 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:36,116 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA5
+2025-11-26 22:43:36,590 - ZeroShotPerturbation - WARNING - DE metrics failed for SMARCA5: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:36,626 - ZeroShotPerturbation - INFO - Target SMARCA5 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:36,626 - ZeroShotPerturbation - INFO - Predicting for target: HIRA
+2025-11-26 22:43:37,482 - ZeroShotPerturbation - WARNING - DE metrics failed for HIRA: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:37,548 - ZeroShotPerturbation - INFO - Target HIRA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:37,548 - ZeroShotPerturbation - INFO - Predicting for target: RAB3B
+2025-11-26 22:43:37,782 - ZeroShotPerturbation - WARNING - DE metrics failed for RAB3B: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:37,791 - ZeroShotPerturbation - INFO - Target RAB3B - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:37,791 - ZeroShotPerturbation - INFO - Predicting for target: IGF2R
+2025-11-26 22:43:38,526 - ZeroShotPerturbation - WARNING - DE metrics failed for IGF2R: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:38,586 - ZeroShotPerturbation - INFO - Target IGF2R - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:38,586 - ZeroShotPerturbation - INFO - Predicting for target: SNCA
+2025-11-26 22:43:38,756 - ZeroShotPerturbation - WARNING - DE metrics failed for SNCA: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:38,764 - ZeroShotPerturbation - INFO - Target SNCA - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:38,764 - ZeroShotPerturbation - INFO - Predicting for target: TMBIM6
+2025-11-26 22:43:38,889 - ZeroShotPerturbation - WARNING - DE metrics failed for TMBIM6: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:38,901 - ZeroShotPerturbation - INFO - Target TMBIM6 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:38,901 - ZeroShotPerturbation - INFO - Predicting for target: DAXX
+2025-11-26 22:43:39,247 - ZeroShotPerturbation - WARNING - DE metrics failed for DAXX: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:39,274 - ZeroShotPerturbation - INFO - Target DAXX - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:39,274 - ZeroShotPerturbation - INFO - Predicting for target: METTL14
+2025-11-26 22:43:39,414 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL14: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:39,423 - ZeroShotPerturbation - INFO - Target METTL14 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:39,423 - ZeroShotPerturbation - INFO - Predicting for target: METTL17
+2025-11-26 22:43:39,630 - ZeroShotPerturbation - WARNING - DE metrics failed for METTL17: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:39,648 - ZeroShotPerturbation - INFO - Target METTL17 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:39,648 - ZeroShotPerturbation - INFO - Predicting for target: PRR12
+2025-11-26 22:43:39,971 - ZeroShotPerturbation - WARNING - DE metrics failed for PRR12: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:39,996 - ZeroShotPerturbation - INFO - Target PRR12 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:39,996 - ZeroShotPerturbation - INFO - Predicting for target: EPB41L2
+2025-11-26 22:43:40,088 - ZeroShotPerturbation - WARNING - DE metrics failed for EPB41L2: No module named 'hpdex.backend.bin'
+2025-11-26 22:43:40,094 - ZeroShotPerturbation - INFO - Target EPB41L2 - Pearson: nan, DES: nan, n_DE: 0
+2025-11-26 22:43:40,138 - ZeroShotPerturbation - INFO - Results saved to results/baseline/perturbation_metrics.csv
+2025-11-26 22:43:40,138 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:43:40,138 - ZeroShotPerturbation - INFO - Overall Metrics:
+2025-11-26 22:43:40,141 - ZeroShotPerturbation - INFO -   Mean Pearson (log2FC): nan
+2025-11-26 22:43:40,141 - ZeroShotPerturbation - INFO -   Mean MSE (log2FC):     nan
+2025-11-26 22:43:40,142 - ZeroShotPerturbation - INFO -   Mean DES:              nan
+2025-11-26 22:43:40,142 - ZeroShotPerturbation - INFO -   Mean PDS:              0.5556
+2025-11-26 22:43:40,142 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:45:44,373 - ZeroShotPerturbation - INFO - Starting Zero-Shot Perturbation Pipeline with baseline model
+2025-11-26 22:45:44,373 - ZeroShotPerturbation - INFO - Results will be saved to: results/baseline
+2025-11-26 22:45:44,373 - ZeroShotPerturbation - INFO - Initializing Baseline Model Wrapper...
+2025-11-26 22:45:44,482 - ZeroShotPerturbation - INFO - Loaded vocab from model/scGPT/vocab.json
+2025-11-26 22:45:44,483 - ZeroShotPerturbation - INFO - Initializing Data Loader...
+2025-11-26 22:45:44,483 - ZeroShotPerturbation - INFO - Loading training data from data/processed/train.h5ad
+2025-11-26 22:45:57,285 - ZeroShotPerturbation - INFO - Loading test data from data/processed/test.h5ad
+2025-11-26 22:45:58,909 - ZeroShotPerturbation - INFO - Found 38176 control cells.
+2025-11-26 22:46:12,584 - ZeroShotPerturbation - INFO - Processing 15 target genes...
+2025-11-26 22:46:12,585 - ZeroShotPerturbation - INFO - Predicting for target: TCF3
+2025-11-26 22:46:19,021 - ZeroShotPerturbation - INFO - Target TCF3 - Pearson: 0.8831, DES: 0.0000, n_DE: 121
+2025-11-26 22:46:19,022 - ZeroShotPerturbation - INFO - Predicting for target: TADA1
+2025-11-26 22:46:33,057 - ZeroShotPerturbation - INFO - Target TADA1 - Pearson: 0.8407, DES: 0.0000, n_DE: 9426
+2025-11-26 22:46:33,057 - ZeroShotPerturbation - INFO - Predicting for target: FOXH1
+2025-11-26 22:46:39,909 - ZeroShotPerturbation - INFO - Target FOXH1 - Pearson: 0.8774, DES: 0.0000, n_DE: 823
+2025-11-26 22:46:39,909 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA4
+2025-11-26 22:46:43,381 - ZeroShotPerturbation - INFO - Target SMARCA4 - Pearson: 0.8083, DES: 0.0000, n_DE: 9952
+2025-11-26 22:46:43,381 - ZeroShotPerturbation - INFO - Predicting for target: SMARCA5
+2025-11-26 22:46:49,536 - ZeroShotPerturbation - INFO - Target SMARCA5 - Pearson: 0.8302, DES: 0.0000, n_DE: 8695
+2025-11-26 22:46:49,536 - ZeroShotPerturbation - INFO - Predicting for target: HIRA
+2025-11-26 22:47:01,199 - ZeroShotPerturbation - INFO - Target HIRA - Pearson: 0.8708, DES: 0.0000, n_DE: 2066
+2025-11-26 22:47:01,200 - ZeroShotPerturbation - INFO - Predicting for target: RAB3B
+2025-11-26 22:47:03,238 - ZeroShotPerturbation - INFO - Target RAB3B - Pearson: 0.8947, DES: 0.0000, n_DE: 2
+2025-11-26 22:47:03,238 - ZeroShotPerturbation - INFO - Predicting for target: IGF2R
+2025-11-26 22:47:13,934 - ZeroShotPerturbation - INFO - Target IGF2R - Pearson: 0.8643, DES: 0.0000, n_DE: 42
+2025-11-26 22:47:13,934 - ZeroShotPerturbation - INFO - Predicting for target: SNCA
+2025-11-26 22:47:15,257 - ZeroShotPerturbation - INFO - Target SNCA - Pearson: 0.9008, DES: 0.0000, n_DE: 63
+2025-11-26 22:47:15,257 - ZeroShotPerturbation - INFO - Predicting for target: TMBIM6
+2025-11-26 22:47:16,883 - ZeroShotPerturbation - INFO - Target TMBIM6 - Pearson: 0.9024, DES: 0.0000, n_DE: 34
+2025-11-26 22:47:16,883 - ZeroShotPerturbation - INFO - Predicting for target: DAXX
+2025-11-26 22:47:21,390 - ZeroShotPerturbation - INFO - Target DAXX - Pearson: 0.8943, DES: 0.0000, n_DE: 768
+2025-11-26 22:47:21,390 - ZeroShotPerturbation - INFO - Predicting for target: METTL14
+2025-11-26 22:47:22,970 - ZeroShotPerturbation - INFO - Target METTL14 - Pearson: 0.8717, DES: 0.0000, n_DE: 9547
+2025-11-26 22:47:22,970 - ZeroShotPerturbation - INFO - Predicting for target: METTL17
+2025-11-26 22:47:25,675 - ZeroShotPerturbation - INFO - Target METTL17 - Pearson: 0.8901, DES: 0.0000, n_DE: 4857
+2025-11-26 22:47:25,675 - ZeroShotPerturbation - INFO - Predicting for target: PRR12
+2025-11-26 22:47:30,128 - ZeroShotPerturbation - INFO - Target PRR12 - Pearson: 0.8782, DES: 0.0000, n_DE: 1473
+2025-11-26 22:47:30,128 - ZeroShotPerturbation - INFO - Predicting for target: EPB41L2
+2025-11-26 22:47:30,834 - ZeroShotPerturbation - INFO - Target EPB41L2 - Pearson: 0.8758, DES: 0.0000, n_DE: 2478
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO - Results saved to results/baseline/perturbation_metrics.csv
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO - ==================================================
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO - Overall Metrics:
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO -   Mean Pearson (log2FC): 0.8722
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO -   Mean MSE (log2FC):     0.6159
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO -   Mean DES:              0.0000
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO -   Mean PDS:              0.5333
+2025-11-26 22:47:30,842 - ZeroShotPerturbation - INFO - ==================================================

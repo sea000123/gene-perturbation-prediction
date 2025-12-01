@@ -1,3 +1,7 @@
+Activating conda environment 'vcc'...
+Starting Zero-Shot Perturbation Experiment...
+Date: Mon 01 Dec 2025 11:59:50 PM CST
+Config: src/configs/config.yaml
 2025-12-01 23:59:59,930 - ZeroShotPerturbation - INFO - Starting Perturbation Pipeline with scgpt model
 2025-12-01 23:59:59,930 - ZeroShotPerturbation - INFO - Model directory: model/scGPT
 2025-12-01 23:59:59,930 - ZeroShotPerturbation - INFO - Results will be saved to: results/scgpt_zeroshot
@@ -106,3 +110,4 @@
 2025-12-02 00:12:02,069 - ZeroShotPerturbation - INFO -   Mean DES:              0.2062
 2025-12-02 00:12:02,069 - ZeroShotPerturbation - INFO -   Mean MAE_top2k:        13.5427
 2025-12-02 00:12:02,069 - ZeroShotPerturbation - INFO - ==================================================
+Experiment complete. Results saved to paths defined in config.

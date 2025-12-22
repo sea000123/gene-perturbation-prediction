@@ -1,9 +1,6 @@
-# scGPT Fine-tuning Configuration for Reverse Perturbation Prediction
+# scGPT Fine-tuning Configuration (Classification Sanity Check)
 #
-# Three training modes for ablative study:
-#   1. frozen - Inference only (baseline)
-#   2. head_only - Train retrieval head with frozen backbone
-#   3. lora_head - Train LoRA adapters + retrieval head
+# Uses classification loss to validate retrieval embeddings.
 
 # Data
 data:
@@ -31,8 +28,10 @@ model:
   encoder: scgpt
   # Pretrained scGPT checkpoint (frozen backbone)
   pretrained_dir: model/scGPT
+  finetune_apply_head: true
+  finetune_apply_classifier: true
   freeze_encoder: true
-  use_lora: false  # Set to true when using lora_head mode
+  use_lora: false
   raw_layer_key: counts
   preprocess: true
   preprocess_normalize_total: 1e4
@@ -45,7 +44,7 @@ model:
 # Training configuration
 training:
   mode: head_only  # frozen | head_only | lora_head
-  loss_fn: infonce  # infonce | classification
+  loss_fn: classification  # infonce | classification
   epochs: 50
   batch_size: 32
   learning_rate: 1.0e-4
@@ -54,20 +53,14 @@ training:
   mask_perturbed: true
   early_stopping_patience: 10
   early_stopping_metric: val_loss
-  balanced_sampling: true
-  balanced_sampling_n_conditions: 8
-  balanced_sampling_n_cells: 4
-  balanced_sampling_seed: 42
-  checkpoint_dir: model/scgpt_finetune
+  balanced_sampling: false
+  checkpoint_dir: model/scgpt_finetune_cls
 
 # LoRA configuration (for lora_head mode)
 lora:
   rank: 8
   alpha: 16.0
   dropout: 0.1
-  # Target modules in TransformerEncoderLayer:
-  # - out_proj: attention output projection
-  # - linear1, linear2: FFN layers
   target_modules:
     - out_proj
     - linear1
@@ -100,10 +93,11 @@ query:
 
 # Evaluation settings
 evaluate:
+  mode: classifier
   mask_perturbed: true
   mask_ablation: true
 
 # Logging
 logging:
   output_dir: results/
-  experiment_name: scgpt_finetune
+  experiment_name: scgpt_finetune_cls

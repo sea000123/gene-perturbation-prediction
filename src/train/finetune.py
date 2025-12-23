@@ -18,8 +18,9 @@ import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-
+from typing import Dict, List, Optional, Tuple, Union, Sequence
+import pyarrow.parquet as pq
+import bisect
 import numpy as np
 import torch
 import torch.nn as nn
@@ -41,6 +42,11 @@ from .lora import (
 @dataclass
 class TrainingConfig:
     """Configuration for scGPT fine-tuning."""
+    # New: Tahoe parquet dataset
+    parquet_dir: Optional[str] = None   # e.g. /home/user/Desktop/.../tahoe_scgpt_single_target_log1p
+    do_binning: bool = False            # 已经 log1p 了，默认关掉 binning
+    finetune_checkpoint: Optional[str] = None  # 加载 head/LoRA ckpt
+    eval_only: bool = False             # frozen 模式/只评估
 
     # Data paths
     data_h5ad_path: str = "data/norman/perturb_processed.h5ad"
@@ -69,7 +75,7 @@ class TrainingConfig:
 
     # Training hyperparameters
     epochs: int = 50
-    batch_size: int = 32
+    batch_size: int = 8
     learning_rate: float = 1e-4
     weight_decay: float = 0.01
     warmup_ratio: float = 0.1
@@ -261,6 +267,185 @@ class CellEmbeddingDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         return self.embeddings[idx], self.labels[idx]
 
+
+class ParquetTokenDataset(Dataset):
+    """
+    Parquet dataset that:
+    - remaps Tahoe token_ids -> scGPT vocab ids (including special tokens)
+    - ensures exactly one <cls> at position 0 and expr[0]=pad_value
+    - optional target masking (label -> target token id)
+    """
+
+    def __init__(
+        self,
+        parquet_paths: Sequence[str],
+        cls_token_id: int,
+        pad_value: float=0.0,
+        pad_token_id: int=0,
+        eoc_token_id: Optional[int] = None,
+        tahoe2scgpt_json: str = "../Tahoe/raw/tahoe_tokenid_to_scgptid.json",
+        # label -> target_gene_symbol -> scGPT_id
+        label2target_scgptid: Optional[Dict[int, int]] = None,
+        mask_value: float = 0.0,
+        cache_tables: bool = True,
+    ):
+        self.paths = sorted(parquet_paths)
+        self.cls_token_id = int(cls_token_id)
+        self.pad_token_id = int(pad_token_id)
+        self.eoc_token_id = int(eoc_token_id) if eoc_token_id is not None else None
+        self.pad_value = float(pad_value)
+
+        self.label2target_scgptid = label2target_scgptid or {}
+        self.mask_value = float(mask_value)
+
+        # load mapping: Tahoe gene token_id -> scGPT vocab id
+        with open(tahoe2scgpt_json, "r", encoding="utf-8") as f:
+            self.tahoe_gene_map = {int(k): int(v) for k, v in json.load(f).items()}
+
+        # Tahoe special tokens are almost certainly: <pad>=0, <cls>=1, <eoc>=2
+        # We must map them to *scGPT* special ids from vocab/config. 
+        self.tahoe_special_map = {
+            0: self.pad_token_id,
+            1: self.cls_token_id,
+        }
+        if self.eoc_token_id is not None:
+            self.tahoe_special_map[2] = self.eoc_token_id
+
+        # build lightweight (path, row_idx) index
+        # __init__ 里：替换掉 self._index 那段
+        self.row_counts = []
+        for p in self.paths:
+            pf = pq.ParquetFile(p)
+            self.row_counts.append(pf.metadata.num_rows)
+
+        self.prefix = [0]
+        s = 0
+        for n in self.row_counts:
+            s += n
+            self.prefix.append(s)
+        # 删掉 self._index 相关
+
+        # simple per-file cache (whole table) — ok if shards are not huge
+        self.cache_tables = bool(cache_tables)
+        self._cached_path = None
+        self._cached_table = None
+
+    def __len__(self):
+        return self.prefix[-1]
+
+    def _remap_tokens(self, genes: np.ndarray, exprs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Remap Tahoe token ids -> scGPT ids.
+        - Keep only tokens that can be mapped (special or gene_map).
+        - Preserve alignment between genes and exprs.
+        """
+        out_g = []
+        out_x = []
+
+        for g, x in zip(genes.tolist(), exprs.tolist()):
+            g = int(g)
+
+            if g in self.tahoe_special_map:
+                out_g.append(self.tahoe_special_map[g])
+                out_x.append(float(x))
+                continue
+
+            mapped = self.tahoe_gene_map.get(g)
+            if mapped is None:
+                # gene not in scGPT vocab -> drop it
+                continue
+
+            out_g.append(mapped)
+            out_x.append(float(x))
+
+        if len(out_g) == 0:
+            return np.empty((0,), dtype=np.int64), np.empty((0,), dtype=np.float32)
+
+        return np.asarray(out_g, dtype=np.int64), np.asarray(out_x, dtype=np.float32)
+
+    def _ensure_single_cls(self, genes: np.ndarray, exprs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Ensure exactly one <cls> at pos 0 and expr[0]=pad_value.
+        scGPT takes CLS embedding from token 0. 
+        """
+        if genes.size == 0:
+            return genes, exprs
+
+        # if first token is not <cls>, insert
+        if int(genes[0]) != self.cls_token_id:
+            genes = np.insert(genes, 0, self.cls_token_id).astype(np.int64)
+            exprs = np.insert(exprs, 0, self.pad_value).astype(np.float32)
+        else:
+            # already has <cls>, force expr[0]=pad_value to be safe
+            exprs = exprs.astype(np.float32, copy=False)
+            exprs[0] = self.pad_value
+
+        # remove any extra <cls> that might appear later (very rare but safe)
+        if genes.size > 1:
+            mask = np.ones_like(genes, dtype=bool)
+            extra = np.where((genes == self.cls_token_id) & (np.arange(genes.size) != 0))[0]
+            if extra.size > 0:
+                mask[extra] = False
+                genes = genes[mask]
+                exprs = exprs[mask]
+
+        return genes, exprs
+
+    def _mask_target(self, genes: np.ndarray, exprs: np.ndarray, label: int) -> np.ndarray:
+        """
+        Mask expression for target gene token to prevent leakage (anti-cheat).
+        Official code masks perturbed genes in AnnData; we do token-level analogue. 
+        """
+        target_id = self.label2target_scgptid.get(int(label))
+        if target_id is None:
+            return exprs
+
+        # skip pos 0 (<cls>)
+        idx = np.where(genes[1:] == int(target_id))[0]
+        if idx.size > 0:
+            j = int(idx[0] + 1)
+            exprs[j] = self.mask_value
+        return exprs
+
+    def __getitem__(self, idx):
+        k = bisect.bisect_right(self.prefix, idx) - 1
+        path = self.paths[k]
+        row_i = idx - self.prefix[k]
+
+        if (not self.cache_tables) or (path != self._cached_path):
+            table = pq.read_table(path, columns=["genes", "expressions", "label"])
+            if self.cache_tables:
+                self._cached_table = table
+                self._cached_path = path
+        else:
+            table = self._cached_table
+
+        genes = table["genes"][row_i].as_py()
+        exprs = table["expressions"][row_i].as_py()
+        label = int(table["label"][row_i].as_py())
+
+        genes = np.asarray(genes, dtype=np.int64)
+        exprs = np.asarray(exprs, dtype=np.float32)
+
+        # 1) remap Tahoe ids -> scGPT ids (incl specials)
+        genes, exprs = self._remap_tokens(genes, exprs)
+        if genes.size == 0 or genes.size != exprs.size:
+            # return a minimal dummy; better is to filter at DataLoader level
+            genes = np.asarray([self.cls_token_id], dtype=np.int64)
+            exprs = np.asarray([self.pad_value], dtype=np.float32)
+
+        # 2) ensure single CLS at pos0 + expr[0]=pad_value
+        genes, exprs = self._ensure_single_cls(genes, exprs)
+
+        # 3) target masking (optional)
+        if self.label2target_scgptid:
+            exprs = self._mask_target(genes, exprs, label)
+
+        return {
+            "genes": torch.from_numpy(genes).long(),
+            "expressions": torch.from_numpy(exprs).float(),
+            "label": torch.tensor(label, dtype=torch.long),
+        }
 
 class CellTokenDataset(Dataset):
     """Dataset that returns tokenized genes/expressions with labels."""
@@ -561,11 +746,17 @@ class ScGPTTrainer:
                 input_gene_ids = batch["gene"].to(self.device)
                 expressions = batch["expr"].to(self.device)
                 labels = batch["labels"].to(self.device)
-                cls_embeddings = base_model.encode_tokens(
-                    input_gene_ids,
-                    expressions,
-                    pad_token_id=self.pad_token_id,
-                )
+                # head_only / frozen：backbone 不训练，用 no_grad 省显存
+                if base_model.config.mode in ["head_only", "frozen"]:
+                    with torch.no_grad():
+                        cls_embeddings = base_model.encode_tokens(
+                            input_gene_ids, expressions, pad_token_id=self.pad_token_id
+                        )
+                else:
+                    cls_embeddings = base_model.encode_tokens(
+                        input_gene_ids, expressions, pad_token_id=self.pad_token_id
+                    )
+
                 projected = base_model.retrieval_head(cls_embeddings)
             else:
                 embeddings, labels = batch
@@ -665,22 +856,30 @@ class ScGPTTrainer:
             print(f"Learning rate: {self.config.learning_rate}")
             print(f"{'=' * 60}\n")
 
+
+        from tqdm import tqdm
         for epoch in range(self.config.epochs):
             if hasattr(train_loader.sampler, "set_epoch"):
                 train_loader.sampler.set_epoch(epoch)
 
-            # Train
-            train_loss = self.train_epoch(train_loader)
-            self.history["train_loss"].append(train_loss)
-
+            # 使用tqdm包装train_loader
+            train_loader_with_pbar = tqdm(
+                train_loader, 
+                desc=f"Epoch {epoch+1}/{self.config.epochs}",
+                total=len(train_loader),
+                leave=True,
+                disable=not self.is_master
+            )
+            # Train (需要在train_epoch内部处理batch)
+            train_loss = self.train_epoch(train_loader_with_pbar)
+            
             # Validate
             val_loss = self.validate(val_loader)
             self.history["val_loss"].append(val_loss)
 
-            # Log
             if self.is_master:
                 print(
-                    f"Epoch {epoch + 1}/{self.config.epochs} | "
+                    f"Epoch {epoch+1}/{self.config.epochs} | "
                     f"Train Loss: {train_loss:.4f} | "
                     f"Val Loss: {val_loss:.4f}"
                 )
@@ -764,10 +963,32 @@ class ScGPTTrainer:
 
         print(f"Loaded checkpoint: {path}")
 
+@torch.no_grad()
+def eval_accuracy(model, dataloader, device, pad_token_id):
+    model.eval()
+    base = model.module if hasattr(model, "module") else model
+    correct, total = 0, 0
+    for batch in dataloader:
+        gene = batch["gene"].to(device)
+        expr = batch["expr"].to(device)
+        labels = batch["labels"].to(device)
+        cls = base.encode_tokens(gene, expr, pad_token_id=pad_token_id, normalize=False)
+        z = base.retrieval_head(cls)
+        pred = base.loss_fn.predict(z)
+        correct += (pred == labels).sum().item()
+        total += labels.numel()
+    return correct / max(total, 1)
+
 
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="scGPT Fine-tuning")
+    parser.add_argument("--parquet_dir", type=str, default=None)
+    parser.add_argument("--finetune_checkpoint", type=str, default=None)
+    parser.add_argument("--eval_only", action="store_true")
+    parser.add_argument("--do_binning", action="store_true")  # 强制开 binning，默认不开
+    parser.add_argument("--output_dir", type=str, default=None)
+
     parser.add_argument(
         "--config",
         type=str,
@@ -828,6 +1049,15 @@ def main():
     if args.loss:
         config.loss_fn = args.loss
 
+    if args.parquet_dir:
+        config.parquet_dir = args.parquet_dir
+    if args.finetune_checkpoint:
+        config.finetune_checkpoint = args.finetune_checkpoint
+    if args.eval_only:
+        config.eval_only = True
+    if args.do_binning:
+        config.do_binning = True
+
     ddp_enabled, device, rank = _setup_ddp()
     is_master = rank == 0
 
@@ -866,190 +1096,283 @@ def main():
     scgpt_model = encoder._model
 
     # Load dataset
-    from src.data import load_perturb_data, mask_perturbed_genes
-    from src.data import ConditionSplitter, ConditionSplit
-
-    if is_master:
-        print("Loading dataset...")
-    dataset = load_perturb_data(
-        h5ad_path=config.data_h5ad_path,
-        split_path=config.split_output_path,
-        min_cells_per_condition=config.split_min_cells_per_condition,
-        query_fraction=config.split_query_fraction,
-        min_query_cells=config.split_min_query_cells,
-        seed=config.split_seed,
-    )
-    if (
-        config.split_output_path
-        and dataset.split is not None
-        and not Path(config.split_output_path).exists()
-    ):
-        dataset.split.save(config.split_output_path)
-
-    if config.track and config.track != "in_dist":
-        cond_split = None
-        if (
-            config.condition_split_output_path
-            and Path(config.condition_split_output_path).exists()
-        ):
-            cond_split = ConditionSplit.load(config.condition_split_output_path)
-        else:
-            splitter = ConditionSplitter(
-                train_ratio=config.condition_split_train_ratio,
-                val_ratio=config.condition_split_val_ratio,
-                test_ratio=config.condition_split_test_ratio,
-                seed=config.condition_split_seed,
-            )
-            if config.track == "unseen_gene":
-                cond_split = splitter.split_unseen_gene(
-                    dataset.all_conditions,
-                    n_holdout_genes=config.condition_split_n_holdout_genes,
-                )
-            else:
-                cond_split = splitter.split(dataset.all_conditions, track=config.track)
-            if config.condition_split_output_path:
-                cond_split.save(config.condition_split_output_path)
-        dataset.apply_condition_split(cond_split)
-    elif config.track == "in_dist" and is_master:
-        print("  [Info] in_dist track uses cell-level split; skipping condition split.")
-
-    # Get condition mapping
-    conditions = dataset.all_conditions
-    condition_to_idx = {c: i for i, c in enumerate(conditions)}
-    num_conditions = len(conditions)
-    if is_master:
-        print(f"  Conditions: {num_conditions}")
-
-    # Create model
-    model = FineTunableScGPTEncoder(
-        scgpt_model=scgpt_model,
-        config=config,
-        num_conditions=num_conditions,
-    )
-
-    condition_sets = dataset.get_condition_sets()
-    train_conditions = condition_sets.get("train") or conditions
-    val_conditions = condition_sets.get("val") or []
-
-    if config.mode == "lora_head":
-        if is_master:
-            print("Preparing token datasets for LoRA fine-tuning...")
-        train_adata = dataset.get_ref_adata_for_conditions(train_conditions)
-        if config.mask_perturbed:
-            train_adata = mask_perturbed_genes(
-                train_adata, condition_col=dataset.condition_col
-            )
-        train_adata, train_gene_ids = _prepare_scgpt_adata(
-            train_adata, encoder._vocab, encoder.gene_col
-        )
-        train_labels = train_adata.obs[dataset.condition_col].values
-        train_dataset = CellTokenDataset(
-            adata=train_adata,
-            gene_ids=train_gene_ids,
-            condition_labels=train_labels,
-            condition_to_idx=condition_to_idx,
-            cls_token_id=encoder._vocab["<cls>"],
-            pad_value=encoder._model_configs["pad_value"],
-        )
-
-        if val_conditions:
-            val_adata = dataset.get_ref_adata_for_conditions(val_conditions)
-            if config.mask_perturbed:
-                val_adata = mask_perturbed_genes(
-                    val_adata, condition_col=dataset.condition_col
-                )
-            val_adata, val_gene_ids = _prepare_scgpt_adata(
-                val_adata, encoder._vocab, encoder.gene_col
-            )
-            val_labels = val_adata.obs[dataset.condition_col].values
-            val_dataset = CellTokenDataset(
-                adata=val_adata,
-                gene_ids=val_gene_ids,
-                condition_labels=val_labels,
-                condition_to_idx=condition_to_idx,
-                cls_token_id=encoder._vocab["<cls>"],
-                pad_value=encoder._model_configs["pad_value"],
-            )
-            train_subset = train_dataset
-            val_subset = val_dataset
-        else:
-            n_train = int(0.8 * len(train_dataset))
-            n_val = len(train_dataset) - n_train
-            generator = torch.Generator().manual_seed(config.split_seed)
-            train_subset, val_subset = torch.utils.data.random_split(
-                train_dataset, [n_train, n_val], generator=generator
-            )
-
+    use_parquet = bool(config.parquet_dir)
+    if use_parquet:
+        import glob
         from scgpt.data_collator import DataCollator
 
+        parquet_dir = config.parquet_dir
+        if is_master:
+            print(f"Using Tahoe parquet dataset: {parquet_dir}")
+
+        # 1) 读 label vocab -> num_conditions
+        vocab_path = os.path.join(parquet_dir, "label_vocab.json")
+        with open(vocab_path, "r", encoding="utf-8") as f:
+            vocab_obj = json.load(f)
+
+        # 兼容你之前保存的 gene2y/gene2label 两种 key
+        gene2label = vocab_obj.get("gene2label") or vocab_obj.get("gene2y")
+        if gene2label is None:
+            raise ValueError(f"label_vocab.json missing gene2label/gene2y: {vocab_path}")
+        num_conditions = len(gene2label)
+
+        # 2) 取 split parquet
+        train_paths = sorted(glob.glob(os.path.join(parquet_dir, "train_*.parquet")))
+        val_paths   = sorted(glob.glob(os.path.join(parquet_dir, "val_*.parquet")))
+        test_paths  = sorted(glob.glob(os.path.join(parquet_dir, "test_*.parquet")))
+        ood_paths   = sorted(glob.glob(os.path.join(parquet_dir, "ood_test_*.parquet")))
+
+        if len(train_paths) == 0:
+            raise FileNotFoundError(f"No train_*.parquet under {parquet_dir}")
+        if len(val_paths) == 0:
+            raise FileNotFoundError(f"No val_*.parquet under {parquet_dir}")
+        if len(test_paths) == 0:
+            raise FileNotFoundError(f"No test_*.parquet under {parquet_dir}")
+        if len(ood_paths) == 0 and is_master:
+            print("[Warn] No ood_test_*.parquet found; OOD eval will be skipped.")
+
+        # 3) 建 FineTunableScGPTEncoder（分类头类别数就是 num_conditions）
+        model = FineTunableScGPTEncoder(
+            scgpt_model=scgpt_model,
+            config=config,
+            num_conditions=num_conditions,
+        )
+
+        # 4) Token dataset（你的 parquet 已经是 genes/expressions/label）
+        train_subset = ParquetTokenDataset(
+            train_paths,
+            cls_token_id=encoder._vocab["<cls>"],
+            pad_value=encoder._model_configs["pad_value"],
+            pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
+        )
+        val_subset = ParquetTokenDataset(
+            val_paths,
+            cls_token_id=encoder._vocab["<cls>"],
+            pad_value=encoder._model_configs["pad_value"],
+            pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
+        )
+        test_dataset = ParquetTokenDataset(
+            test_paths,
+            cls_token_id=encoder._vocab["<cls>"],
+            pad_value=encoder._model_configs["pad_value"],
+            pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
+        )
+        ood_dataset = None
+        if len(ood_paths) > 0:
+            ood_dataset = ParquetTokenDataset(
+                ood_paths,
+                cls_token_id=encoder._vocab["<cls>"],
+                pad_value=encoder._model_configs["pad_value"],
+                pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
+            )
+
+        # 5) DataCollator：你已经 log1p，建议 do_binning=False（默认）
         pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
         collator = DataCollator(
             do_padding=True,
             pad_token_id=pad_token_id,
             pad_value=encoder._model_configs["pad_value"],
             do_mlm=False,
-            do_binning=True,
+            do_binning=config.do_binning,   # <<<<<< 默认 False
             max_length=encoder.max_length,
             sampling=True,
             keep_first_n_tokens=1,
         )
         collate_fn = _make_scgpt_collate_fn(collator)
-    else:
-        # Extract embeddings (pre-compute for efficiency)
-        if is_master:
-            print("Extracting embeddings...")
-        train_adata = dataset.get_ref_adata_for_conditions(train_conditions)
-        if config.mask_perturbed:
-            train_adata = mask_perturbed_genes(
-                train_adata, condition_col=dataset.condition_col
-            )
-        train_embeddings = encoder.encode_adata(train_adata)
-        train_labels = train_adata.obs[dataset.condition_col].values
 
-        train_dataset = CellEmbeddingDataset(
-            embeddings=train_embeddings,
-            condition_labels=train_labels,
-            condition_to_idx=condition_to_idx,
+    else:
+        # ====== 原来的 h5ad 流程保持不变 ======
+        from src.data import load_perturb_data, mask_perturbed_genes
+        from src.data import ConditionSplitter, ConditionSplit
+        if is_master:
+            print("Loading dataset...")
+        dataset = load_perturb_data(
+            h5ad_path=config.data_h5ad_path,
+            split_path=config.split_output_path,
+            min_cells_per_condition=config.split_min_cells_per_condition,
+            query_fraction=config.split_query_fraction,
+            min_query_cells=config.split_min_query_cells,
+            seed=config.split_seed,
+        )
+        if (
+            config.split_output_path
+            and dataset.split is not None
+            and not Path(config.split_output_path).exists()
+        ):
+            dataset.split.save(config.split_output_path)
+
+        if config.track and config.track != "in_dist":
+            cond_split = None
+            if (
+                config.condition_split_output_path
+                and Path(config.condition_split_output_path).exists()
+            ):
+                cond_split = ConditionSplit.load(config.condition_split_output_path)
+            else:
+                splitter = ConditionSplitter(
+                    train_ratio=config.condition_split_train_ratio,
+                    val_ratio=config.condition_split_val_ratio,
+                    test_ratio=config.condition_split_test_ratio,
+                    seed=config.condition_split_seed,
+                )
+                if config.track == "unseen_gene":
+                    cond_split = splitter.split_unseen_gene(
+                        dataset.all_conditions,
+                        n_holdout_genes=config.condition_split_n_holdout_genes,
+                    )
+                else:
+                    cond_split = splitter.split(dataset.all_conditions, track=config.track)
+                if config.condition_split_output_path:
+                    cond_split.save(config.condition_split_output_path)
+            dataset.apply_condition_split(cond_split)
+        elif config.track == "in_dist" and is_master:
+            print("  [Info] in_dist track uses cell-level split; skipping condition split.")
+
+        # Get condition mapping
+        conditions = dataset.all_conditions
+        condition_to_idx = {c: i for i, c in enumerate(conditions)}
+        num_conditions = len(conditions)
+        if is_master:
+            print(f"  Conditions: {num_conditions}")
+
+        # Create model
+        model = FineTunableScGPTEncoder(
+            scgpt_model=scgpt_model,
+            config=config,
+            num_conditions=num_conditions,
         )
 
-        if val_conditions:
-            val_adata = dataset.get_ref_adata_for_conditions(val_conditions)
+        condition_sets = dataset.get_condition_sets()
+        train_conditions = condition_sets.get("train") or conditions
+        val_conditions = condition_sets.get("val") or []
+
+        if config.mode == "lora_head":
+            if is_master:
+                print("Preparing token datasets for LoRA fine-tuning...")
+            train_adata = dataset.get_ref_adata_for_conditions(train_conditions)
             if config.mask_perturbed:
-                val_adata = mask_perturbed_genes(
-                    val_adata, condition_col=dataset.condition_col
+                train_adata = mask_perturbed_genes(
+                    train_adata, condition_col=dataset.condition_col
                 )
-            val_embeddings = encoder.encode_adata(val_adata)
-            val_labels = val_adata.obs[dataset.condition_col].values
-            val_dataset = CellEmbeddingDataset(
-                embeddings=val_embeddings,
-                condition_labels=val_labels,
+            train_adata, train_gene_ids = _prepare_scgpt_adata(
+                train_adata, encoder._vocab, encoder.gene_col
+            )
+            train_labels = train_adata.obs[dataset.condition_col].values
+            train_dataset = CellTokenDataset(
+                adata=train_adata,
+                gene_ids=train_gene_ids,
+                condition_labels=train_labels,
+                condition_to_idx=condition_to_idx,
+                cls_token_id=encoder._vocab["<cls>"],
+                pad_value=encoder._model_configs["pad_value"],
+            )
+
+            if val_conditions:
+                val_adata = dataset.get_ref_adata_for_conditions(val_conditions)
+                if config.mask_perturbed:
+                    val_adata = mask_perturbed_genes(
+                        val_adata, condition_col=dataset.condition_col
+                    )
+                val_adata, val_gene_ids = _prepare_scgpt_adata(
+                    val_adata, encoder._vocab, encoder.gene_col
+                )
+                val_labels = val_adata.obs[dataset.condition_col].values
+                val_dataset = CellTokenDataset(
+                    adata=val_adata,
+                    gene_ids=val_gene_ids,
+                    condition_labels=val_labels,
+                    condition_to_idx=condition_to_idx,
+                    cls_token_id=encoder._vocab["<cls>"],
+                    pad_value=encoder._model_configs["pad_value"],
+                )
+                train_subset = train_dataset
+                val_subset = val_dataset
+            else:
+                n_train = int(0.8 * len(train_dataset))
+                n_val = len(train_dataset) - n_train
+                generator = torch.Generator().manual_seed(config.split_seed)
+                train_subset, val_subset = torch.utils.data.random_split(
+                    train_dataset, [n_train, n_val], generator=generator
+                )
+
+            from scgpt.data_collator import DataCollator
+
+            pad_token_id = encoder._vocab[encoder._model_configs["pad_token"]]
+            collator = DataCollator(
+                do_padding=True,
+                pad_token_id=pad_token_id,
+                pad_value=encoder._model_configs["pad_value"],
+                do_mlm=False,
+                do_binning=True,
+                max_length=encoder.max_length,
+                sampling=True,
+                keep_first_n_tokens=1,
+            )
+            collate_fn = _make_scgpt_collate_fn(collator)
+        else:
+            # Extract embeddings (pre-compute for efficiency)
+            if is_master:
+                print("Extracting embeddings...")
+            train_adata = dataset.get_ref_adata_for_conditions(train_conditions)
+            if config.mask_perturbed:
+                train_adata = mask_perturbed_genes(
+                    train_adata, condition_col=dataset.condition_col
+                )
+            train_embeddings = encoder.encode_adata(train_adata)
+            train_labels = train_adata.obs[dataset.condition_col].values
+
+            train_dataset = CellEmbeddingDataset(
+                embeddings=train_embeddings,
+                condition_labels=train_labels,
                 condition_to_idx=condition_to_idx,
             )
-            train_subset = train_dataset
-            val_subset = val_dataset
-        else:
-            n_train = int(0.8 * len(train_dataset))
-            n_val = len(train_dataset) - n_train
-            generator = torch.Generator().manual_seed(config.split_seed)
-            train_subset, val_subset = torch.utils.data.random_split(
-                train_dataset, [n_train, n_val], generator=generator
-            )
-        collate_fn = None
-        pad_token_id = None
+
+            if val_conditions:
+                val_adata = dataset.get_ref_adata_for_conditions(val_conditions)
+                if config.mask_perturbed:
+                    val_adata = mask_perturbed_genes(
+                        val_adata, condition_col=dataset.condition_col
+                    )
+                val_embeddings = encoder.encode_adata(val_adata)
+                val_labels = val_adata.obs[dataset.condition_col].values
+                val_dataset = CellEmbeddingDataset(
+                    embeddings=val_embeddings,
+                    condition_labels=val_labels,
+                    condition_to_idx=condition_to_idx,
+                )
+                train_subset = train_dataset
+                val_subset = val_dataset
+            else:
+                n_train = int(0.8 * len(train_dataset))
+                n_val = len(train_dataset) - n_train
+                generator = torch.Generator().manual_seed(config.split_seed)
+                train_subset, val_subset = torch.utils.data.random_split(
+                    train_dataset, [n_train, n_val], generator=generator
+                )
+            collate_fn = None
+            pad_token_id = None
 
     train_sampler = None
     val_sampler = None
     if ddp_enabled:
-        train_sampler = torch.utils.data.DistributedSampler(train_subset, shuffle=True)
+        train_sampler = torch.utils.data.DistributedSampler(train_subset, shuffle=False)
         val_sampler = torch.utils.data.DistributedSampler(val_subset, shuffle=False)
 
+    config.batch_size=8
+    loader_kwargs = dict(
+        num_workers=4,              # 先 4；CPU 多可试 8
+        pin_memory=True,
+        persistent_workers=True,    # PyTorch>=1.7
+        prefetch_factor=2,
+    )
     train_loader = DataLoader(
         train_subset,
         batch_size=config.batch_size,
-        shuffle=train_sampler is None,
+        shuffle=False,
         drop_last=True,
         sampler=train_sampler,
         collate_fn=collate_fn,
+        **loader_kwargs,
     )
     val_loader = DataLoader(
         val_subset,
@@ -1057,6 +1380,7 @@ def main():
         shuffle=False,
         sampler=val_sampler,
         collate_fn=collate_fn,
+        **loader_kwargs,
     )
 
     # Train
@@ -1067,18 +1391,49 @@ def main():
             device_ids=[int(device.split(":")[-1])],
             find_unused_parameters=allow_unused,
         )
+    end_to_end_flag = use_parquet and (config.mode in ["head_only", "lora_head", "frozen"])
     trainer = ScGPTTrainer(
         model,
         config,
         device=device,
         is_master=is_master,
-        end_to_end=config.mode == "lora_head",
-        pad_token_id=pad_token_id,
+        end_to_end=end_to_end_flag,
+        pad_token_id=pad_token_id if end_to_end_flag else None,
     )
 
-    history = trainer.train(train_loader, val_loader)
+    if use_parquet and (config.mode == "frozen" or config.eval_only):
+        if not config.finetune_checkpoint:
+            raise ValueError("frozen/eval_only requires --finetune_checkpoint to load head/LoRA weights")
+
+        trainer.load_checkpoint(config.finetune_checkpoint)
+
+        # test loader
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=config.batch_size,
+            shuffle=False,
+            collate_fn=collate_fn,
+        )
+        acc_test = eval_accuracy(trainer.model, test_loader, device, pad_token_id)
+
+        acc_ood = None
+        if ood_dataset is not None:
+            ood_loader = DataLoader(
+                ood_dataset,
+                batch_size=config.batch_size,
+                shuffle=False,
+                collate_fn=collate_fn,
+            )
+            acc_ood = eval_accuracy(trainer.model, ood_loader, device, pad_token_id)
+
+        if is_master:
+            print(f"[Eval] test acc: {acc_test:.4f}")
+            if acc_ood is not None:
+                print(f"[Eval] ood  acc: {acc_ood:.4f}")
+        return
 
     # Save history
+    history = trainer.train(train_loader, val_loader)
     if is_master:
         history_path = Path(config.checkpoint_dir) / f"history_{config.mode}.json"
         with open(history_path, "w") as f:

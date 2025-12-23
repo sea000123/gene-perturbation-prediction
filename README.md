@@ -39,3 +39,25 @@ python -m src.main --config src/configs/pca.yaml
 - Metrics and evaluation: `docs/eval_metrics.md`
 - Project overview: `docs/project-intro/introduction.md`
 - scGPT reference notes: `docs/references/scGPT.md`
+
+## Tahoe dataset
+```bash
+pip show scgpt 
+```
+Name: scgpt Version: 0.2.0
+
+```bash
+python -m src.train.finetune \
+  --mode head_only --loss classification \
+  --parquet_dir /home/user/Desktop/CODE/VCC/Tahoe/raw/tahoe_scgpt_single_target_log1p
+
+python -m src.train.finetune \
+  --mode lora_head --loss classification \
+  --parquet_dir /home/user/Desktop/CODE/VCC/Tahoe/raw/tahoe_scgpt_single_target_log1p
+
+python -m src.train.finetune \
+  --mode frozen --loss classification --eval_only \
+  --parquet_dir /home/user/Desktop/CODE/VCC/Tahoe/raw/tahoe_scgpt_single_target_log1p \
+  --finetune_checkpoint /path/to/best_head_only.pt
+
+```

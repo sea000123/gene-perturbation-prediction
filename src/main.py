@@ -64,6 +64,8 @@ def parse_args():
         action="store_true",
         help="Generate detailed error analysis report",
     )
+    parser.add_argument("--parquet_dir", type=str, default=None)
+
     return parser.parse_args()
 
 

@@ -60,4 +60,4 @@ python -m src.train.finetune \
   --parquet_dir /home/user/Desktop/CODE/VCC/Tahoe/raw/tahoe_scgpt_single_target_log1p \
   --finetune_checkpoint /path/to/best_head_only.pt
 
-```
+```# tahoe-for-scgpt

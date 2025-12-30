@@ -24,6 +24,7 @@ from src.model.random_forest import RandomForestWrapper
 from src.model.ridge import RidgeWrapper
 from src.model.linear import LinearWrapper
 from src.data.loader import PerturbationDataLoader
+from src.utils.h5ad_eval import evaluate_from_h5ad
 
 
 def load_config(config_path):
@@ -54,6 +55,14 @@ def main():
         default=-1,
         help="Number of threads for hpdex DE analysis (-1 = all cores)",
     )
+    parser.add_argument("--eval_mode", default="model", choices=["model", "h5ad"])
+    parser.add_argument("--train_h5ad", default=None, help="Path to control mean .h5ad")
+    parser.add_argument("--truth_h5ad", default=None, help="Path to ground-truth .h5ad")
+    parser.add_argument("--pred_h5ad", default=None, help="Path to predicted .h5ad")
+
+    parser.add_argument("--pert_col", default="target_gene")
+    parser.add_argument("--control_label", default="non-targeting")
+
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -103,6 +112,37 @@ def main():
 
     # Get metrics config
     mae_top_k = config.get("metrics", {}).get("mae_top_k", 2000)
+    # After: mae_top_k = config.get("metrics", {}).get("mae_top_k", 2000) :contentReference[oaicite:10]{index=10}
+
+    if args.eval_mode == "h5ad":
+        if not args.truth_h5ad or not args.pred_h5ad:
+            raise ValueError("In eval_mode=h5ad, --truth_h5ad and --pred_h5ad are required.")
+
+        logger.info("Running evaluation from h5ad files (no model inference).")
+        results_df, summary = evaluate_from_h5ad(
+            train_h5ad=args.train_h5ad,
+            truth_h5ad=args.truth_h5ad,
+            pred_h5ad=args.pred_h5ad,
+            pert_col=args.pert_col,
+            control_label=args.control_label,
+            top_k=mae_top_k,
+            threads=args.threads,
+        )
+
+        csv_path = output_dir / "perturbation_metrics.csv"
+        results_df.to_csv(csv_path, index=False)
+        logger.info(f"Results saved to {csv_path}")
+
+        logger.info("=" * 50)
+        logger.info("Final Test Metrics (from h5ad):")
+        logger.info("-" * 50)
+        logger.info(f"  pds_nrank:             {summary['pds_nrank']:.4f}")
+        logger.info(f"  mae:                   {summary['mean_mae']:.4f}")
+        logger.info(f"  des:                   {summary['mean_des']:.4f}")
+        logger.info("-" * 50)
+        logger.info(f"  overall_score:         {summary['overall_score']:.2f}")
+        logger.info("=" * 50)
+        return
 
     # 2. Initialize Components
     if args.model_type == "baseline":

@@ -1,11 +1,12 @@
 # src/eval/h5ad_eval.py
 '''
+export PYTHONHASHSEED=0
 python src/main_new.py \
   --config src/configs/h5ad.yaml \
   --eval_mode h5ad \
   --train_h5ad ../CellPerturb_VCC_Proj6/vcc_data/log1p/train_lognorm.h5ad \
   --truth_h5ad ../CellPerturb_VCC_Proj6/vcc_data/log1p/test_lognorm.h5ad \
-  --pred_h5ad ../CellPerturb_VCC_Proj6/vcc_data/log1p/test_lognorm.h5ad \
+  --pred_h5ad ../CellPerturb_VCC_Proj6/vcc_data/log1p/test_pred.h5ad \
   --pert_col target_gene \
   --control_label non-targeting 
 '''
